@@ -1,4 +1,5 @@
 import numpy as np
+from sklearn.datasets import fetch_california_housing
 
 
 def sigmoid(x):
@@ -99,3 +100,10 @@ class CustomLSTM:
             ct_1 = c_t
 
         return np.array(predictions).flatten()
+
+
+california_housing_data_set = fetch_california_housing()
+data = california_housing_data_set.data[:1000]
+target = california_housing_data_set.target[:1000]
+print(data)
+print(target)
