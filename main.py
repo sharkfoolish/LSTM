@@ -105,5 +105,8 @@ class CustomLSTM:
 california_housing_data_set = fetch_california_housing()
 data = california_housing_data_set.data[:1000]
 target = california_housing_data_set.target[:1000]
-print(data)
-print(target)
+
+lstm_model = CustomLSTM(input_dim=data.shape[1], hidden_dim=50, output_dim=1)
+lstm_model.train(data, target, epochs=5000)
+predictions = lstm_model.predict(data)
+print(predictions)
