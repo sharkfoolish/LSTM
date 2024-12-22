@@ -139,7 +139,10 @@ class CustomLSTM:
                 ht_1 = h_t
                 ct_1 = c_t
 
+            avg_loss = total_loss / len(X)
+            self.losses.append(avg_loss)
             self.learning_rate_decay(epoch)
+            print(f"Epoch {epoch}/{epochs}, Loss: {avg_loss:.6f}")
 
     def predict(self, X):
         ht_1 = np.zeros((self.hidden_dim, 1))
