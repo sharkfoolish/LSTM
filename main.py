@@ -52,11 +52,12 @@ def train_test_split(data, target, train_size, test_size, random_state=None):
 
 
 class CustomLSTM:
-    def __init__(self, input_dim, hidden_dim, output_dim, learning_rate=0.01):
+    def __init__(self, input_dim, hidden_dim, output_dim, learning_rate=0.01, reg_lambda=0.01):
         self.input_dim = input_dim
         self.hidden_dim = hidden_dim
         self.output_dim = output_dim
         self.learning_rate = learning_rate
+        self.reg_lambda = reg_lambda
 
         self.Wf = np.random.randn(hidden_dim, input_dim + hidden_dim) * np.sqrt(2.0 / (input_dim + hidden_dim))
         self.Wi = np.random.randn(hidden_dim, input_dim + hidden_dim) * np.sqrt(2.0 / (input_dim + hidden_dim))
