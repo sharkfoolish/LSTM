@@ -34,6 +34,23 @@ def r2(y_true, y_pred):
     return 1 - (ss_res / ss_tot)
 
 
+def train_test_split(data, target, train_size, test_size, random_state=None):
+
+    if not np.isclose(train_size + test_size, 1.0):
+        raise ValueError("The sum of train_size and test_size must be 1.0")
+
+    if random_state is not None:
+        np.random.seed(random_state)
+
+    indices = np.random.permutation(len(data))
+    train_end = int(len(data) * train_size)
+
+    data_train, data_test = data[indices[:train_end]], data[indices[train_end:]]
+    target_train, target_test = target[indices[:train_end]], target[indices[train_end:]]
+
+    return data_train, data_test, target_train, target_test
+
+
 class CustomLSTM:
     def __init__(self, input_dim, hidden_dim, output_dim, learning_rate=0.01):
         self.input_dim = input_dim
