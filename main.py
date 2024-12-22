@@ -67,45 +67,52 @@ class CustomLSTM:
         self.learning_rate = learning_rate
         self.decay_factor = decay_factor
         self.reg_lambda = reg_lambda
+        self.initialize_weights()
+        self.initialize_biases()
 
-        self.Wf = np.random.randn(hidden_dim, input_dim + hidden_dim) * np.sqrt(2.0 / (input_dim + hidden_dim))
-        self.Wi = np.random.randn(hidden_dim, input_dim + hidden_dim) * np.sqrt(2.0 / (input_dim + hidden_dim))
-        self.Wo = np.random.randn(hidden_dim, input_dim + hidden_dim) * np.sqrt(2.0 / (input_dim + hidden_dim))
-        self.Wc = np.random.randn(hidden_dim, input_dim + hidden_dim) * np.sqrt(2.0 / (input_dim + hidden_dim))
-        self.Wy = np.random.randn(output_dim, hidden_dim) * np.sqrt(2.0 / hidden_dim)
+    def initialize_weights(self):
+        self.weights = {
+            'forget_gate': xavier_init(self.hidden_dim, self.input_dim + self.hidden_dim),
+            'input_gate': xavier_init(self.hidden_dim, self.input_dim + self.hidden_dim),
+            'output_gate': xavier_init(self.hidden_dim, self.input_dim + self.hidden_dim),
+            'cell_state': xavier_init(self.hidden_dim, self.input_dim + self.hidden_dim),
+            'output_layer': xavier_init(self.output_dim, self.hidden_dim)
+        }
 
-        self.bf = np.zeros((hidden_dim, 1))
-        self.bi = np.zeros((hidden_dim, 1))
-        self.bo = np.zeros((hidden_dim, 1))
-        self.bc = np.zeros((hidden_dim, 1))
-        self.by = np.zeros((output_dim, 1))
+    def initialize_biases(self):
+        self.biases = {
+            'forget_gate': np.zeros((self.hidden_dim, 1)),
+            'input_gate': np.zeros((self.hidden_dim, 1)),
+            'output_gate': np.zeros((self.hidden_dim, 1)),
+            'cell_state': np.zeros((self.hidden_dim, 1)),
+            'output_layer': np.zeros((self.output_dim, 1))
+        }
 
     def learning_rate_decay(self, epoch):
         self.learning_rate = self.init_learning_rate / (1 + self.decay_factor * epoch)
 
     def forward_pass(self, xt, ht_1, ct_1):
         concat = np.vstack((ht_1, xt))
-        f_t = sigmoid(np.dot(self.Wf, concat) + self.bf)
-        i_t = sigmoid(np.dot(self.Wi, concat) + self.bi)
-        cp_t = tanh(np.dot(self.Wc, concat) + self.bc)
-        o_t = sigmoid(np.dot(self.Wo, concat) + self.bo)
+        f_t = sigmoid(np.dot(self.weights['forget_gate'], concat) + self.biases['forget_gate'])
+        i_t = sigmoid(np.dot(self.weights['input_gate'], concat) + self.biases['input_gate'])
+        cp_t = tanh(np.dot(self.weights['cell_state'], concat) + self.biases['cell_state'])
+        o_t = sigmoid(np.dot(self.weights['output_gate'], concat) + self.biases['output_gate'])
         c_t = f_t * ct_1 + i_t * cp_t
         h_t = o_t * tanh(c_t)
-        y_pred = np.dot(self.Wy, h_t) + self.by
+        y_pred = np.dot(self.weights['output_layer'], h_t) + self.biases['output_layer']
         return h_t, c_t, y_pred, f_t, i_t, cp_t, o_t
 
     def backward_pass(self, xt, ht_1, ct_1, h_t, c_t, y_pred, yt, f_t, i_t, cp_t, o_t):
         dy = 2 * (y_pred - yt)
         dWy = np.dot(dy, h_t.T)
         dby = dy
+        dh_t = np.dot(self.weights['output_layer'].T, dy)
 
-        dh_t = np.dot(self.Wy.T, dy)
-
-        do_t = dh_t * tanh(c_t) * sigmoid_derivative(np.dot(self.Wo, np.vstack((ht_1, xt))) + self.bo)
+        do_t = dh_t * tanh(c_t) * sigmoid_derivative(np.dot(self.weights['output_gate'], np.vstack((ht_1, xt))) + self.biases['output_gate'])
         dc_t = dh_t * o_t * tanh_derivative(tanh(c_t))
-        df_t = dc_t * ct_1 * sigmoid_derivative(np.dot(self.Wf, np.vstack((ht_1, xt))) + self.bf)
-        di_t = dc_t * cp_t * sigmoid_derivative(np.dot(self.Wi, np.vstack((ht_1, xt))) + self.bi)
-        dcp_t = dc_t * i_t * tanh_derivative(np.dot(self.Wc, np.vstack((ht_1, xt))) + self.bc)
+        df_t = dc_t * ct_1 * sigmoid_derivative(np.dot(self.weights['forget_gate'], np.vstack((ht_1, xt))) + self.biases['forget_gate'])
+        di_t = dc_t * cp_t * sigmoid_derivative(np.dot(self.weights['input_gate'], np.vstack((ht_1, xt))) + self.biases['input_gate'])
+        dcp_t = dc_t * i_t * tanh_derivative(np.dot(self.weights['cell_state'], np.vstack((ht_1, xt))) + self.biases['cell_state'])
 
         dWf = np.dot(df_t, np.vstack((ht_1, xt)).T)
         dWi = np.dot(di_t, np.vstack((ht_1, xt)).T)
@@ -116,16 +123,16 @@ class CustomLSTM:
         dbo = do_t
         dbc = dcp_t
 
-        self.Wf -= self.learning_rate * (dWf + self.reg_lambda * self.Wf * 2)
-        self.Wi -= self.learning_rate * (dWi + self.reg_lambda * self.Wi * 2)
-        self.Wo -= self.learning_rate * (dWo + self.reg_lambda * self.Wo * 2)
-        self.Wc -= self.learning_rate * (dWc + self.reg_lambda * self.Wc * 2)
-        self.Wy -= self.learning_rate * (dWy + self.reg_lambda * self.Wy * 2)
-        self.bf -= self.learning_rate * dbf
-        self.bi -= self.learning_rate * dbi
-        self.bo -= self.learning_rate * dbo
-        self.bc -= self.learning_rate * dbc
-        self.by -= self.learning_rate * dby
+        self.weights['forget_gate'] -= self.learning_rate * (dWf + self.reg_lambda * self.weights['forget_gate'] * 2)
+        self.weights['input_gate'] -= self.learning_rate * (dWi + self.reg_lambda * self.weights['input_gate'] * 2)
+        self.weights['output_gate'] -= self.learning_rate * (dWo + self.reg_lambda * self.weights['output_gate'] * 2)
+        self.weights['cell_state'] -= self.learning_rate * (dWc + self.reg_lambda * self.weights['output_gate'] * 2)
+        self.weights['output_layer'] -= self.learning_rate * (dWc + self.reg_lambda * self.weights['output_gate'] * 2)
+        self.biases['forget_gate'] -= self.learning_rate * dbf
+        self.biases['input_gate'] -= self.learning_rate * dbi
+        self.biases['output_gate'] -= self.learning_rate * dbo
+        self.biases['cell_state'] -= self.learning_rate * dbc
+        self.biases['output_layer'] -= self.learning_rate * dby
 
     def train(self, X, y, epochs):
         for epoch in range(1, epochs + 1):
