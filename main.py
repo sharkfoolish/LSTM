@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 from sklearn.datasets import fetch_california_housing
 from sklearn.preprocessing import StandardScaler
 
@@ -142,5 +143,12 @@ mse_of_predictions = mse(target, predictions)
 mae_of_predictions = mae(target, predictions)
 r2_of_predictions = r2(target, predictions)
 
-print(predictions)
 print(f"CustomLSTM Model - MSE: {mse_of_predictions:.4f}, MAE: {mae_of_predictions:.4f}, R2: {r2_of_predictions:.4f}")
+
+plt.figure(figsize=(12, 6))
+plt.plot(target, label='Actual Values', marker='o')
+plt.plot(predictions, label='Predicted Values Of CustomLSTM', marker='x')
+plt.xlabel('Sample')
+plt.ylabel('House Value')
+plt.title('Actual vs. Predicted Values Of CustomLSTM')
+plt.show()
