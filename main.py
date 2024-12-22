@@ -25,11 +25,11 @@ class CustomLSTM:
         self.output_dim = output_dim
         self.learning_rate = learning_rate
 
-        self.Wf = np.random.uniform(-0.1, 0.1, (hidden_dim, input_dim + hidden_dim))
-        self.Wi = np.random.uniform(-0.1, 0.1, (hidden_dim, input_dim + hidden_dim))
-        self.Wo = np.random.uniform(-0.1, 0.1, (hidden_dim, input_dim + hidden_dim))
-        self.Wc = np.random.uniform(-0.1, 0.1, (hidden_dim, input_dim + hidden_dim))
-        self.Wy = np.random.uniform(-0.1, 0.1, (output_dim, hidden_dim))
+        self.Wf = np.random.randn(hidden_dim, input_dim + hidden_dim) * np.sqrt(2.0 / (input_dim + hidden_dim))
+        self.Wi = np.random.randn(hidden_dim, input_dim + hidden_dim) * np.sqrt(2.0 / (input_dim + hidden_dim))
+        self.Wo = np.random.randn(hidden_dim, input_dim + hidden_dim) * np.sqrt(2.0 / (input_dim + hidden_dim))
+        self.Wc = np.random.randn(hidden_dim, input_dim + hidden_dim) * np.sqrt(2.0 / (input_dim + hidden_dim))
+        self.Wy = np.random.randn(output_dim, hidden_dim) * np.sqrt(2.0 / hidden_dim)
 
     def forward_pass(self, xt, ht_1, ct_1):
         concat = np.vstack((ht_1, xt))
