@@ -138,6 +138,8 @@ class CustomLSTM:
                 ht_1 = h_t
                 ct_1 = c_t
 
+            self.learning_rate_decay(epoch)
+
     def predict(self, X):
         ht_1 = np.zeros((self.hidden_dim, 1))
         ct_1 = np.zeros((self.hidden_dim, 1))
