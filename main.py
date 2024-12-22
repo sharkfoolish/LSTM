@@ -103,21 +103,22 @@ class CustomLSTM:
         return h_t, c_t, y_pred, f_t, i_t, cp_t, o_t
 
     def backward_pass(self, xt, ht_1, ct_1, h_t, c_t, y_pred, yt, f_t, i_t, cp_t, o_t):
+        concat = np.vstack((ht_1, xt))
         dy = 2 * (y_pred - yt)
         dWy = np.dot(dy, h_t.T)
         dby = dy
         dh_t = np.dot(self.weights['output_layer'].T, dy)
 
-        do_t = dh_t * tanh(c_t) * sigmoid_derivative(np.dot(self.weights['output_gate'], np.vstack((ht_1, xt))) + self.biases['output_gate'])
+        do_t = dh_t * tanh(c_t) * sigmoid_derivative(np.dot(self.weights['output_gate'], concat) + self.biases['output_gate'])
         dc_t = dh_t * o_t * tanh_derivative(tanh(c_t))
-        df_t = dc_t * ct_1 * sigmoid_derivative(np.dot(self.weights['forget_gate'], np.vstack((ht_1, xt))) + self.biases['forget_gate'])
-        di_t = dc_t * cp_t * sigmoid_derivative(np.dot(self.weights['input_gate'], np.vstack((ht_1, xt))) + self.biases['input_gate'])
-        dcp_t = dc_t * i_t * tanh_derivative(np.dot(self.weights['cell_state'], np.vstack((ht_1, xt))) + self.biases['cell_state'])
+        df_t = dc_t * ct_1 * sigmoid_derivative(np.dot(self.weights['forget_gate'], concat) + self.biases['forget_gate'])
+        di_t = dc_t * cp_t * sigmoid_derivative(np.dot(self.weights['input_gate'], concat) + self.biases['input_gate'])
+        dcp_t = dc_t * i_t * tanh_derivative(np.dot(self.weights['cell_state'], concat) + self.biases['cell_state'])
 
-        dWf = np.dot(df_t, np.vstack((ht_1, xt)).T)
-        dWi = np.dot(di_t, np.vstack((ht_1, xt)).T)
-        dWo = np.dot(do_t, np.vstack((ht_1, xt)).T)
-        dWc = np.dot(dcp_t, np.vstack((ht_1, xt)).T)
+        dWf = np.dot(df_t, concat.T)
+        dWi = np.dot(di_t, concat.T)
+        dWo = np.dot(do_t, concat.T)
+        dWc = np.dot(dcp_t, concat.T)
         dbf = df_t
         dbi = di_t
         dbo = do_t
