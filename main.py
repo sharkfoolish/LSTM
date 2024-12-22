@@ -52,11 +52,12 @@ def train_test_split(data, target, train_size, test_size, random_state=None):
 
 
 class CustomLSTM:
-    def __init__(self, input_dim, hidden_dim, output_dim, learning_rate=0.01):
+    def __init__(self, input_dim, hidden_dim, output_dim, learning_rate=0.01, reg_lambda=0.01):
         self.input_dim = input_dim
         self.hidden_dim = hidden_dim
         self.output_dim = output_dim
         self.learning_rate = learning_rate
+        self.reg_lambda = reg_lambda
 
         self.Wf = np.random.randn(hidden_dim, input_dim + hidden_dim) * np.sqrt(2.0 / (input_dim + hidden_dim))
         self.Wi = np.random.randn(hidden_dim, input_dim + hidden_dim) * np.sqrt(2.0 / (input_dim + hidden_dim))
@@ -103,11 +104,11 @@ class CustomLSTM:
         dbo = do_t
         dbc = dcp_t
 
-        self.Wf -= self.learning_rate * dWf
-        self.Wi -= self.learning_rate * dWi
-        self.Wo -= self.learning_rate * dWo
-        self.Wc -= self.learning_rate * dWc
-        self.Wy -= self.learning_rate * dWy
+        self.Wf -= self.learning_rate * (dWf + self.reg_lambda * self.Wf * 2)
+        self.Wi -= self.learning_rate * (dWi + self.reg_lambda * self.Wi * 2)
+        self.Wo -= self.learning_rate * (dWo + self.reg_lambda * self.Wo * 2)
+        self.Wc -= self.learning_rate * (dWc + self.reg_lambda * self.Wc * 2)
+        self.Wy -= self.learning_rate * (dWy + self.reg_lambda * self.Wy * 2)
         self.bf -= self.learning_rate * dbf
         self.bi -= self.learning_rate * dbi
         self.bo -= self.learning_rate * dbo
