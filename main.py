@@ -71,6 +71,9 @@ class CustomLSTM:
         self.bc = np.zeros((hidden_dim, 1))
         self.by = np.zeros((output_dim, 1))
 
+    def learning_rate_decay(self, epoch):
+        self.learning_rate = self.init_learning_rate / (1 + self.decay_factor * epoch)
+
     def forward_pass(self, xt, ht_1, ct_1):
         concat = np.vstack((ht_1, xt))
         f_t = sigmoid(np.dot(self.Wf, concat) + self.bf)
