@@ -168,6 +168,24 @@ class CustomLSTM:
             self.losses.append(avg_loss)
             self.learning_rate_decay(epoch)
             print(f"Epoch {epoch}/{epochs}, Loss: {avg_loss:.6f}")
+    def evaluate(self, X, y):
+        total_loss = 0
+        ht_1 = np.zeros((self.hidden_dim, 1))
+        ct_1 = np.zeros((self.hidden_dim, 1))
+
+        for i in range(len(X)):
+            xt = X[i].reshape(-1, 1)
+            yt = y[i].reshape(-1, 1)
+            h_t, c_t, y_pred, _, _, _, _ = self.forward_pass(xt, ht_1, ct_1)
+
+            loss = mse(y_pred, yt)
+            total_loss += loss
+
+            ht_1 = h_t
+            ct_1 = c_t
+
+        avg_loss = total_loss / len(X)
+        return avg_loss
 
     def predict(self, X):
         ht_1 = np.zeros((self.hidden_dim, 1))
