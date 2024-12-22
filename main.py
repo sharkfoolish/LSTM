@@ -145,7 +145,7 @@ class CustomLSTM:
                 xt = data_train[i]
                 yt = target_train[i]
                 h_t, c_t, y_pred, f_t, i_t, cp_t, o_t = self.forward_pass(xt, ht_1, ct_1)
-                loss = (y_pred - yt) ** 2
+                loss = mse(y_pred, yt)
                 total_loss += loss
                 self.backward_pass(xt, ht_1, ct_1, h_t, c_t, y_pred, yt, f_t, i_t, cp_t, o_t)
 
@@ -183,9 +183,7 @@ data_train, data_test, target_train, target_test = train_test_split(data, target
 lstm_model = CustomLSTM(input_dim=data_train.shape[1], hidden_dim=50, output_dim=1)
 lstm_model.train(data_train, target_train, epochs=5000)
 predictions = lstm_model.predict(data_test)
-mse_of_predictions = mse(target_test, predictions)
-mae_of_predictions = mae(target_test, predictions)
-r2_of_predictions = r2(target_test, predictions)
+print(f"CustomLSTM Model - MSE: {mse(target_test, predictions):.4f}, MAE: {mae(target_test, predictions):.4f}, R2: {r2(target_test, predictions):.4f}")
 
 print(f"CustomLSTM Model - MSE: {mse_of_predictions:.4f}, MAE: {mae_of_predictions:.4f}, R2: {r2_of_predictions:.4f}")
 
