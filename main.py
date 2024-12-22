@@ -103,6 +103,21 @@ class CustomLSTM:
             'output_layer': np.zeros((self.output_dim, 1))
         }
 
+    # 初始化梯度總和
+    def initialize_gradients_total(self):
+        return {
+            'forget_gate_weight': np.zeros_like(self.weights['forget_gate']),
+            'input_gate_weight': np.zeros_like(self.weights['input_gate']),
+            'output_gate_weight': np.zeros_like(self.weights['output_gate']),
+            'cell_state_weight': np.zeros_like(self.weights['cell_state']),
+            'output_layer_weight': np.zeros_like(self.weights['output_layer']),
+            'forget_gate_bias': np.zeros_like(self.biases['forget_gate']),
+            'input_gate_bias': np.zeros_like(self.biases['input_gate']),
+            'output_gate_bias': np.zeros_like(self.biases['output_gate']),
+            'cell_state_bias': np.zeros_like(self.biases['cell_state']),
+            'output_layer_bias': np.zeros_like(self.biases['output_layer'])
+        }
+
     # 學習率衰減
     def learning_rate_decay(self, epoch):
         self.learning_rate = self.init_learning_rate / (1 + self.decay_factor * epoch)
