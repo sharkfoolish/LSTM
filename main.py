@@ -4,36 +4,44 @@ from sklearn.datasets import fetch_california_housing
 from sklearn.preprocessing import StandardScaler
 
 
+# Sigmoid 函數：常用於神經網絡中，將輸入值壓縮至 0 到 1 之間
 def sigmoid(x):
     return 1 / (1 + np.exp(-x))
 
 
+# Tanh 函數：雙曲正切函數，將輸入值壓縮至 -1 到 1 之間
 def tanh(x):
     return np.tanh(x)
 
 
+# Sigmoid 函數的導數
 def sigmoid_derivative(x):
     return sigmoid(x) * (1 - sigmoid(x))
 
 
+# Tanh 函數的導數
 def tanh_derivative(x):
     return 1 - np.tanh(x) ** 2
 
 
+# 均方誤差 (MSE) 損失函數
 def mse(y_true, y_pred):
     return np.mean((y_true - y_pred) ** 2)
 
 
+# 平均絕對誤差 (MAE) 損失函數
 def mae(y_true, y_pred):
     return np.mean(np.abs(y_true - y_pred))
 
 
+# R2 決定係數，用於衡量回歸模型的預測效果
 def r2(y_true, y_pred):
     ss_res = np.sum((y_true - y_pred) ** 2)
     ss_tot = np.sum((y_true - np.mean(y_true)) ** 2)
     return 1 - (ss_res / ss_tot)
 
 
+# 資料集分割函數，將資料分成訓練集、驗證集和測試集
 def train_test_split(data, target, train_size, test_size, random_state=None):
 
     if not np.isclose(train_size + test_size, 1.0):
@@ -59,17 +67,18 @@ def xavier_init(rows, cols):
 # 定義自製 LSTM 類別
 class CustomLSTM:
     def __init__(self, input_dim, hidden_dim, output_dim, learning_rate=0.01, reg_lambda=0.01, decay_factor=0.01):
-        self.losses = []
-        self.input_dim = input_dim
-        self.hidden_dim = hidden_dim
-        self.output_dim = output_dim
-        self.init_learning_rate = learning_rate
-        self.learning_rate = learning_rate
-        self.decay_factor = decay_factor
-        self.reg_lambda = reg_lambda
-        self.initialize_weights()
-        self.initialize_biases()
+        self.losses = []  # 訓練過程中的損失
+        self.input_dim = input_dim  # 輸入維度
+        self.hidden_dim = hidden_dim  # 隱藏層維度
+        self.output_dim = output_dim  # 輸出維度
+        self.init_learning_rate = learning_rate  # 初始學習率
+        self.learning_rate = learning_rate  # 當前學習率
+        self.decay_factor = decay_factor  # 學習率衰減參數
+        self.reg_lambda = reg_lambda  # 正則化參數
+        self.initialize_weights()  # 初始化權重
+        self.initialize_biases()  # 初始化偏差
 
+    # 初始化權重
     def initialize_weights(self):
         self.weights = {
             'forget_gate': xavier_init(self.hidden_dim, self.input_dim + self.hidden_dim),
@@ -79,6 +88,7 @@ class CustomLSTM:
             'output_layer': xavier_init(self.output_dim, self.hidden_dim)
         }
 
+    # 初始化Biases
     def initialize_biases(self):
         self.biases = {
             'forget_gate': np.zeros((self.hidden_dim, 1)),
@@ -88,18 +98,19 @@ class CustomLSTM:
             'output_layer': np.zeros((self.output_dim, 1))
         }
 
+    # 學習率衰減
     def learning_rate_decay(self, epoch):
         self.learning_rate = self.init_learning_rate / (1 + self.decay_factor * epoch)
 
     def forward_pass(self, xt, ht_1, ct_1):
-        concat = np.vstack((ht_1, xt))
-        f_t = sigmoid(np.dot(self.weights['forget_gate'], concat) + self.biases['forget_gate'])
-        i_t = sigmoid(np.dot(self.weights['input_gate'], concat) + self.biases['input_gate'])
-        cp_t = tanh(np.dot(self.weights['cell_state'], concat) + self.biases['cell_state'])
-        o_t = sigmoid(np.dot(self.weights['output_gate'], concat) + self.biases['output_gate'])
-        c_t = f_t * ct_1 + i_t * cp_t
-        h_t = o_t * tanh(c_t)
-        y_pred = np.dot(self.weights['output_layer'], h_t) + self.biases['output_layer']
+        concat = np.vstack((ht_1, xt))  # 拼接前一時刻的隱藏狀態和當前輸入
+        f_t = sigmoid(np.dot(self.weights['forget_gate'], concat) + self.biases['forget_gate'])  # 忘記門
+        i_t = sigmoid(np.dot(self.weights['input_gate'], concat) + self.biases['input_gate'])  # 輸入門
+        cp_t = tanh(np.dot(self.weights['cell_state'], concat) + self.biases['cell_state'])  # 候選記憶單元
+        o_t = sigmoid(np.dot(self.weights['output_gate'], concat) + self.biases['output_gate'])  # 輸出門
+        c_t = f_t * ct_1 + i_t * cp_t  # 記憶單元狀態更新
+        h_t = o_t * tanh(c_t)  # 隱藏狀態更新
+        y_pred = np.dot(self.weights['output_layer'], h_t) + self.biases['output_layer']  # 輸出層預測
         return h_t, c_t, y_pred, f_t, i_t, cp_t, o_t
 
     def backward_pass(self, xt, ht_1, ct_1, h_t, c_t, y_pred, yt, f_t, i_t, cp_t, o_t):
@@ -135,6 +146,7 @@ class CustomLSTM:
         self.biases['cell_state'] -= self.learning_rate * dbc
         self.biases['output_layer'] -= self.learning_rate * dby
 
+    # 訓練模型
     def train(self, data_train, target_train, epochs):
         for epoch in range(1, epochs + 1):
             total_loss = 0
@@ -171,22 +183,25 @@ class CustomLSTM:
         return np.array(predictions).flatten()
 
 
+# 獲得 California housing 資料集
 california_housing_data_set = fetch_california_housing()
 data = california_housing_data_set.data[:1000]
 target = california_housing_data_set.target[:1000]
 
+# 資料標準化
 scaler = StandardScaler()
 data = scaler.fit_transform(data)
 
+# 訓練、驗證、測試資料分割
 data_train, data_test, target_train, target_test = train_test_split(data, target, train_size=0.6, test_size=0.2, random_state=1000)
 
+# 訓練 LSTM 模型
 lstm_model = CustomLSTM(input_dim=data_train.shape[1], hidden_dim=50, output_dim=1)
 lstm_model.train(data_train, target_train, epochs=5000)
 predictions = lstm_model.predict(data_test)
 print(f"CustomLSTM Model - MSE: {mse(target_test, predictions):.4f}, MAE: {mae(target_test, predictions):.4f}, R2: {r2(target_test, predictions):.4f}")
 
-print(f"CustomLSTM Model - MSE: {mse_of_predictions:.4f}, MAE: {mae_of_predictions:.4f}, R2: {r2_of_predictions:.4f}")
-
+# 比對實際值和預測值
 plt.figure(figsize=(12, 6))
 plt.plot(target_test, label='Actual Values', marker='o')
 plt.plot(predictions, label='Predicted Values Of CustomLSTM', marker='x')
