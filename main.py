@@ -42,21 +42,21 @@ def r2(y_true, y_pred):
 
 
 # 資料集分割函數，將資料分成訓練集、驗證集和測試集
-def train_test_split(data, target, train_size, test_size, random_state=None):
+def train_val_test_split(data, target, train_size, val_size, test_size, random_state=None):
 
-    if not np.isclose(train_size + test_size, 1.0):
-        raise ValueError("The sum of train_size and test_size must be 1.0")
+    if not np.isclose(train_size + val_size + test_size, 1.0):
+        raise ValueError("The sum of train_size, val_size, and test_size must be 1.0")
 
     if random_state is not None:
         np.random.seed(random_state)
+    indices = np.random.permutation(len(data))  # 隨機打亂資料索引
+    train_end = int(len(data) * train_size)  # 訓練集結束索引
+    val_end = train_end + int(len(data) * val_size)  # 驗證集結束索引
 
-    indices = np.random.permutation(len(data))
-    train_end = int(len(data) * train_size)
+    data_train, data_val, data_test = data[indices[:train_end]], data[indices[train_end:val_end]], data[indices[val_end:]]
+    target_train, target_val, target_test = target[indices[:train_end]], target[indices[train_end:val_end]], target[indices[val_end:]]
 
-    data_train, data_test = data[indices[:train_end]], data[indices[train_end:]]
-    target_train, target_test = target[indices[:train_end]], target[indices[train_end:]]
-
-    return data_train, data_test, target_train, target_test
+    return data_train, data_val, data_test, target_train, target_val, target_test
 
 
 # Xavier 初始化，用於初始化權重
@@ -193,7 +193,7 @@ scaler = StandardScaler()
 data = scaler.fit_transform(data)
 
 # 訓練、驗證、測試資料分割
-data_train, data_test, target_train, target_test = train_test_split(data, target, train_size=0.6, test_size=0.2, random_state=1000)
+data_train, data_val, data_test, target_train, target_val, target_test = train_val_test_split(data, target, train_size=0.6, val_size=0.2, test_size=0.2, random_state=1000)
 
 # 訓練 LSTM 模型
 lstm_model = CustomLSTM(input_dim=data_train.shape[1], hidden_dim=50, output_dim=1)
