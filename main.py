@@ -51,6 +51,12 @@ def train_test_split(data, target, train_size, test_size, random_state=None):
     return data_train, data_test, target_train, target_test
 
 
+# Xavier 初始化，用於初始化權重
+def xavier_init(rows, cols):
+    return np.random.randn(rows, cols) * np.sqrt(2.0 / (rows + cols))
+
+
+# 定義自製 LSTM 類別
 class CustomLSTM:
     def __init__(self, input_dim, hidden_dim, output_dim, learning_rate=0.01, reg_lambda=0.01, decay_factor=0.01):
         self.losses = []
