@@ -135,6 +135,13 @@ class CustomLSTM:
 
         return gradients_total
 
+    # 更新權重和偏差
+    def update_weights_and_biases(self, gradients_total):
+        for key in ['forget_gate', 'input_gate', 'output_gate', 'cell_state', 'output_layer']:
+            self.weights[key] -= self.learning_rate * (
+                        gradients_total[f'{key}_weight'] + self.reg_lambda * self.weights[key] * 2)
+            self.biases[key] -= self.learning_rate * gradients_total[f'{key}_bias']
+
     # 學習率衰減
     def learning_rate_decay(self, epoch):
         self.learning_rate = self.init_learning_rate / (1 + self.decay_factor * epoch)
