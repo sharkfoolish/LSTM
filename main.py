@@ -135,16 +135,15 @@ class CustomLSTM:
         self.biases['cell_state'] -= self.learning_rate * dbc
         self.biases['output_layer'] -= self.learning_rate * dby
 
-    def train(self, X, y, epochs):
+    def train(self, data_train, target_train, epochs):
         for epoch in range(1, epochs + 1):
             total_loss = 0
             ht_1 = np.zeros((self.hidden_dim, 1))
             ct_1 = np.zeros((self.hidden_dim, 1))
 
-            for i in range(len(X)):
-                xt = X[i]
-                yt = y[i]
-
+            for i in range(len(data_train)):
+                xt = data_train[i]
+                yt = target_train[i]
                 h_t, c_t, y_pred, f_t, i_t, cp_t, o_t = self.forward_pass(xt, ht_1, ct_1)
                 loss = (y_pred - yt) ** 2
                 total_loss += loss
@@ -153,7 +152,7 @@ class CustomLSTM:
                 ht_1 = h_t
                 ct_1 = c_t
 
-            avg_loss = total_loss / len(X)
+            avg_loss = total_loss / len(data_train)
             self.losses.append(avg_loss)
             self.learning_rate_decay(epoch)
             print(f"Epoch {epoch}/{epochs}, Loss: {avg_loss:.6f}")
