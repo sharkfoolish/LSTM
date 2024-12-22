@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 from sklearn.datasets import fetch_california_housing
 from sklearn.preprocessing import StandardScaler
 
@@ -124,4 +125,11 @@ data = scaler.fit_transform(data)
 lstm_model = CustomLSTM(input_dim=data.shape[1], hidden_dim=50, output_dim=1)
 lstm_model.train(data, target, epochs=5000)
 predictions = lstm_model.predict(data)
-print(predictions)
+
+plt.figure(figsize=(12, 6))
+plt.plot(target, label='Actual Values', marker='o')
+plt.plot(predictions, label='Predicted Values Of CustomLSTM', marker='x')
+plt.xlabel('Sample')
+plt.ylabel('House Value')
+plt.title('Actual vs. Predicted Values Of CustomLSTM')
+plt.show()
