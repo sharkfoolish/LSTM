@@ -19,6 +19,10 @@ def tanh_derivative(x):
     return 1 - np.tanh(x) ** 2
 
 
+def mse(y_true, y_pred):
+    return np.mean((y_true - y_pred) ** 2)
+
+
 class CustomLSTM:
     def __init__(self, input_dim, hidden_dim, output_dim, learning_rate=0.01):
         self.input_dim = input_dim
@@ -124,3 +128,7 @@ data = scaler.fit_transform(data)
 lstm_model = CustomLSTM(input_dim=data.shape[1], hidden_dim=50, output_dim=1)
 lstm_model.train(data, target, epochs=5000)
 predictions = lstm_model.predict(data)
+mse_of_predictions = mse(target, predictions)
+
+print(predictions)
+print(f"CustomLSTM Model - MSE: {mse_of_predictions:.4f}")
