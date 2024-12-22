@@ -75,6 +75,11 @@ class CustomLSTM:
         self.Wo -= self.learning_rate * dWo
         self.Wc -= self.learning_rate * dWc
         self.Wy -= self.learning_rate * dWy
+        self.bf -= self.learning_rate * dbf
+        self.bi -= self.learning_rate * dbi
+        self.bo -= self.learning_rate * dbo
+        self.bc -= self.learning_rate * dbc
+        self.by -= self.learning_rate * dby
 
     def train(self, X, y, epochs):
         for epoch in range(1, epochs + 1):
