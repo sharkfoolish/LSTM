@@ -68,6 +68,7 @@ def xavier_init(rows, cols):
 class CustomLSTM:
     def __init__(self, input_dim, hidden_dim, output_dim, learning_rate=0.01, reg_lambda=0.01, decay_factor=0.01):
         self.losses = []  # 訓練過程中的損失
+        self.val_losses = []  # 驗證過程中的損失
         self.input_dim = input_dim  # 輸入維度
         self.hidden_dim = hidden_dim  # 隱藏層維度
         self.output_dim = output_dim  # 輸出維度
@@ -168,6 +169,11 @@ class CustomLSTM:
             self.losses.append(avg_loss)
             self.learning_rate_decay(epoch)
             print(f"Epoch {epoch}/{epochs}, Loss: {avg_loss:.6f}")
+
+            val_loss = self.evaluate(data_val, target_val)
+            self.val_losses.append(val_loss)
+            print(f"Validation Loss: {val_loss:.6f}")
+
     def evaluate(self, X, y):
         total_loss = 0
         ht_1 = np.zeros((self.hidden_dim, 1))
