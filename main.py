@@ -241,6 +241,13 @@ lstm_model.train(data_train, target_train, epochs=5000)
 predictions = lstm_model.predict(data_test)
 print(f"CustomLSTM Model - MSE: {mse(target_test, predictions):.4f}, MAE: {mae(target_test, predictions):.4f}, R2: {r2(target_test, predictions):.4f}")
 
+# 訓練和驗證損失圖表
+plt.plot(lstm_model.losses, label='Training Loss')
+plt.plot(lstm_model.val_losses, label='Validation Loss')
+plt.xlabel('Epochs')
+plt.ylabel('Loss')
+plt.legend()
+
 # 比對實際值和預測值
 plt.figure(figsize=(12, 6))
 plt.plot(target_test, label='Actual Values', marker='o')
