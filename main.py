@@ -118,6 +118,23 @@ class CustomLSTM:
             'output_layer_bias': np.zeros_like(self.biases['output_layer'])
         }
 
+    # 累積梯度
+    def accumulate_gradients_total(self, gradients_total, dWy, dby, do_t, dc_t, df_t, di_t, dcp_t, concat):
+
+        gradients_total['output_layer_weight'] += dWy
+        gradients_total['forget_gate_weight'] += np.dot(df_t, concat.T)
+        gradients_total['input_gate_weight'] += np.dot(di_t, concat.T)
+        gradients_total['output_gate_weight'] += np.dot(do_t, concat.T)
+        gradients_total['cell_state_weight'] += np.dot(dcp_t, concat.T)
+
+        gradients_total['output_layer_bias'] += dby
+        gradients_total['forget_gate_bias'] += df_t
+        gradients_total['input_gate_bias'] += di_t
+        gradients_total['output_gate_bias'] += do_t
+        gradients_total['cell_state_bias'] += dcp_t
+
+        return gradients_total
+
     # 學習率衰減
     def learning_rate_decay(self, epoch):
         self.learning_rate = self.init_learning_rate / (1 + self.decay_factor * epoch)
