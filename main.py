@@ -31,6 +31,12 @@ class CustomLSTM:
         self.Wc = np.random.randn(hidden_dim, input_dim + hidden_dim) * np.sqrt(2.0 / (input_dim + hidden_dim))
         self.Wy = np.random.randn(output_dim, hidden_dim) * np.sqrt(2.0 / hidden_dim)
 
+        self.bf = np.zeros((hidden_dim, 1))
+        self.bi = np.zeros((hidden_dim, 1))
+        self.bo = np.zeros((hidden_dim, 1))
+        self.bc = np.zeros((hidden_dim, 1))
+        self.by = np.zeros((output_dim, 1))
+
     def forward_pass(self, xt, ht_1, ct_1):
         concat = np.vstack((ht_1, xt))
         f_t = sigmoid(np.dot(self.Wf, concat))
@@ -100,7 +106,6 @@ class CustomLSTM:
             ct_1 = c_t
 
         return np.array(predictions).flatten()
-
 
 california_housing_data_set = fetch_california_housing()
 data = california_housing_data_set.data[:1000]
