@@ -103,6 +103,45 @@ class CustomLSTM:
             'output_layer': np.zeros((self.output_dim, 1))
         }
 
+    # 初始化梯度總和
+    def initialize_gradients_total(self):
+        return {
+            'forget_gate_weight': np.zeros_like(self.weights['forget_gate']),
+            'input_gate_weight': np.zeros_like(self.weights['input_gate']),
+            'output_gate_weight': np.zeros_like(self.weights['output_gate']),
+            'cell_state_weight': np.zeros_like(self.weights['cell_state']),
+            'output_layer_weight': np.zeros_like(self.weights['output_layer']),
+            'forget_gate_bias': np.zeros_like(self.biases['forget_gate']),
+            'input_gate_bias': np.zeros_like(self.biases['input_gate']),
+            'output_gate_bias': np.zeros_like(self.biases['output_gate']),
+            'cell_state_bias': np.zeros_like(self.biases['cell_state']),
+            'output_layer_bias': np.zeros_like(self.biases['output_layer'])
+        }
+
+    # 累積梯度
+    def accumulate_gradients_total(self, gradients_total, dWy, dby, do_t, dc_t, df_t, di_t, dcp_t, concat):
+
+        gradients_total['output_layer_weight'] += dWy
+        gradients_total['forget_gate_weight'] += np.dot(df_t, concat.T)
+        gradients_total['input_gate_weight'] += np.dot(di_t, concat.T)
+        gradients_total['output_gate_weight'] += np.dot(do_t, concat.T)
+        gradients_total['cell_state_weight'] += np.dot(dcp_t, concat.T)
+
+        gradients_total['output_layer_bias'] += dby
+        gradients_total['forget_gate_bias'] += df_t
+        gradients_total['input_gate_bias'] += di_t
+        gradients_total['output_gate_bias'] += do_t
+        gradients_total['cell_state_bias'] += dcp_t
+
+        return gradients_total
+
+    # 更新權重和偏差
+    def update_weights_and_biases(self, gradients_total):
+        for key in ['forget_gate', 'input_gate', 'output_gate', 'cell_state', 'output_layer']:
+            self.weights[key] -= self.learning_rate * (
+                        gradients_total[f'{key}_weight'] + self.reg_lambda * self.weights[key] * 2)
+            self.biases[key] -= self.learning_rate * gradients_total[f'{key}_bias']
+
     # 學習率衰減
     def learning_rate_decay(self, epoch):
         self.learning_rate = self.init_learning_rate / (1 + self.decay_factor * epoch)
@@ -131,45 +170,47 @@ class CustomLSTM:
         di_t = dc_t * cp_t * sigmoid_derivative(np.dot(self.weights['input_gate'], concat) + self.biases['input_gate'])
         dcp_t = dc_t * i_t * tanh_derivative(np.dot(self.weights['cell_state'], concat) + self.biases['cell_state'])
 
-        dWf = np.dot(df_t, concat.T)
-        dWi = np.dot(di_t, concat.T)
-        dWo = np.dot(do_t, concat.T)
-        dWc = np.dot(dcp_t, concat.T)
-        dbf = df_t
-        dbi = di_t
-        dbo = do_t
-        dbc = dcp_t
-
-        self.weights['forget_gate'] -= self.learning_rate * (dWf + self.reg_lambda * self.weights['forget_gate'] * 2)
-        self.weights['input_gate'] -= self.learning_rate * (dWi + self.reg_lambda * self.weights['input_gate'] * 2)
-        self.weights['output_gate'] -= self.learning_rate * (dWo + self.reg_lambda * self.weights['output_gate'] * 2)
-        self.weights['cell_state'] -= self.learning_rate * (dWc + self.reg_lambda * self.weights['output_gate'] * 2)
-        self.weights['output_layer'] -= self.learning_rate * (dWc + self.reg_lambda * self.weights['output_gate'] * 2)
-        self.biases['forget_gate'] -= self.learning_rate * dbf
-        self.biases['input_gate'] -= self.learning_rate * dbi
-        self.biases['output_gate'] -= self.learning_rate * dbo
-        self.biases['cell_state'] -= self.learning_rate * dbc
-        self.biases['output_layer'] -= self.learning_rate * dby
+        return dWy, dby, do_t, dc_t, df_t, di_t, dcp_t
 
     # 訓練模型
-    def train(self, data_train, target_train, data_val, target_val, epochs):
+    def train(self, data_train, target_train, data_val, target_val, epochs, batch_size=32):
+        patience = self.patience + len(target_val) // 100
         for epoch in range(1, epochs + 1):
             total_loss = 0
-            ht_1 = np.zeros((self.hidden_dim, 1))
-            ct_1 = np.zeros((self.hidden_dim, 1))
+            num_batches = len(data_train) // batch_size
 
-            for i in range(len(data_train)):
-                xt = data_train[i]
-                yt = target_train[i]
-                h_t, c_t, y_pred, f_t, i_t, cp_t, o_t = self.forward_pass(xt, ht_1, ct_1)
-                loss = mse(y_pred, yt)
-                total_loss += loss
-                self.backward_pass(xt, ht_1, ct_1, h_t, c_t, y_pred, yt, f_t, i_t, cp_t, o_t)
+            for i in range(0, len(data_train), batch_size):
+                x_batch = data_train[i:i + batch_size]
+                y_batch = target_train[i:i + batch_size]
 
-                ht_1 = h_t
-                ct_1 = c_t
+                gradients_total = self.initialize_gradients_total()
 
-            avg_loss = total_loss / len(data_train)
+                batch_loss = 0
+                ht_1 = np.zeros((self.hidden_dim, 1))
+                ct_1 = np.zeros((self.hidden_dim, 1))
+
+                for j in range(len(x_batch)):
+                    xt = x_batch[j].reshape(-1, 1)
+                    yt = y_batch[j].reshape(-1, 1)
+
+                    h_t, c_t, y_pred, f_t, i_t, cp_t, o_t = self.forward_pass(xt, ht_1, ct_1)
+
+                    loss = mse(y_pred, yt)
+                    batch_loss += loss
+
+                    dWy, dby, do_t, dc_t, df_t, di_t, dcp_t = self.backward_pass(xt, ht_1, ct_1, h_t, c_t, y_pred, yt, f_t, i_t, cp_t, o_t)
+
+                    concat = np.vstack((ht_1, xt))
+                    gradients_total = self.accumulate_gradients_total(gradients_total, dWy, dby, do_t, dc_t, df_t, di_t, dcp_t, concat)
+
+                    ht_1 = h_t
+                    ct_1 = c_t
+
+                total_loss += batch_loss / len(x_batch)
+
+                self.update_weights_and_biases(gradients_total)
+
+            avg_loss = total_loss / num_batches
             self.losses.append(avg_loss)
             self.learning_rate_decay(epoch)
             print(f"Epoch {epoch}/{epochs}, Loss: {avg_loss:.6f}")
