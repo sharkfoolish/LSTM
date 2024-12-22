@@ -152,7 +152,7 @@ class CustomLSTM:
         self.biases['output_layer'] -= self.learning_rate * dby
 
     # 訓練模型
-    def train(self, data_train, target_train, epochs):
+    def train(self, data_train, target_train, data_val, target_val, epochs):
         for epoch in range(1, epochs + 1):
             total_loss = 0
             ht_1 = np.zeros((self.hidden_dim, 1))
@@ -237,7 +237,7 @@ data_train, data_val, data_test, target_train, target_val, target_test = train_v
 
 # 訓練 LSTM 模型
 lstm_model = CustomLSTM(input_dim=data_train.shape[1], hidden_dim=50, output_dim=1)
-lstm_model.train(data_train, target_train, epochs=5000)
+lstm_model.train(data_train, target_train, data_val, target_val, epochs=1000)
 predictions = lstm_model.predict(data_test)
 print(f"CustomLSTM Model - MSE: {mse(target_test, predictions):.4f}, MAE: {mae(target_test, predictions):.4f}, R2: {r2(target_test, predictions):.4f}")
 
