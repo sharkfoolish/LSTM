@@ -53,6 +53,7 @@ def train_test_split(data, target, train_size, test_size, random_state=None):
 
 class CustomLSTM:
     def __init__(self, input_dim, hidden_dim, output_dim, learning_rate=0.01, reg_lambda=0.01, decay_factor=0.01):
+        self.losses = []
         self.input_dim = input_dim
         self.hidden_dim = hidden_dim
         self.output_dim = output_dim
@@ -138,7 +139,10 @@ class CustomLSTM:
                 ht_1 = h_t
                 ct_1 = c_t
 
+            avg_loss = total_loss / len(X)
+            self.losses.append(avg_loss)
             self.learning_rate_decay(epoch)
+            print(f"Epoch {epoch}/{epochs}, Loss: {avg_loss:.6f}")
 
     def predict(self, X):
         ht_1 = np.zeros((self.hidden_dim, 1))
