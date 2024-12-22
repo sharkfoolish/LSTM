@@ -1,4 +1,5 @@
 import numpy as np
+import copy
 import matplotlib.pyplot as plt
 from sklearn.datasets import fetch_california_housing
 from sklearn.preprocessing import StandardScaler
@@ -66,7 +67,7 @@ def xavier_init(rows, cols):
 
 # 定義自製 LSTM 類別
 class CustomLSTM:
-    def __init__(self, input_dim, hidden_dim, output_dim, learning_rate=0.01, reg_lambda=0.01, decay_factor=0.01):
+    def __init__(self, input_dim, hidden_dim, output_dim, learning_rate=0.01, reg_lambda=0.01, decay_factor=0.01, patience=10):
         self.losses = []  # 訓練過程中的損失
         self.val_losses = []  # 驗證過程中的損失
         self.input_dim = input_dim  # 輸入維度
@@ -76,6 +77,9 @@ class CustomLSTM:
         self.learning_rate = learning_rate  # 當前學習率
         self.decay_factor = decay_factor  # 學習率衰減參數
         self.reg_lambda = reg_lambda  # 正則化參數
+        self.patience = patience  # 早停的耐心次數
+        self.best_val_loss = float('inf')  # 最佳驗證損失
+        self.patience_counter = 0  # 早停計數器
         self.initialize_weights()  # 初始化權重
         self.initialize_biases()  # 初始化偏差
 
@@ -173,6 +177,18 @@ class CustomLSTM:
             val_loss = self.evaluate(data_val, target_val)
             self.val_losses.append(val_loss)
             print(f"Validation Loss: {val_loss:.6f}")
+
+            # 早停機制
+            if val_loss < self.best_val_loss:
+                self.best_val_loss = val_loss
+                self.best_weights = copy.deepcopy(self.__dict__)
+                self.patience_counter = 0
+            else:
+                self.patience_counter += 1
+                if self.patience_counter >= patience:
+                    print(f"Early stopping at epoch {epoch}")
+                    self.__dict__.update(self.best_weights)
+                    break
 
     def evaluate(self, X, y):
         total_loss = 0
