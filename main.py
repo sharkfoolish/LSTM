@@ -153,17 +153,19 @@ target = california_housing_data_set.target[:1000]
 scaler = StandardScaler()
 data = scaler.fit_transform(data)
 
-lstm_model = CustomLSTM(input_dim=data.shape[1], hidden_dim=50, output_dim=1)
-lstm_model.train(data, target, epochs=5000)
-predictions = lstm_model.predict(data)
-mse_of_predictions = mse(target, predictions)
-mae_of_predictions = mae(target, predictions)
-r2_of_predictions = r2(target, predictions)
+data_train, data_test, target_train, target_test = train_test_split(data, target, train_size=0.6, test_size=0.2, random_state=1000)
+
+lstm_model = CustomLSTM(input_dim=data_train.shape[1], hidden_dim=50, output_dim=1)
+lstm_model.train(data_train, target_train, epochs=5000)
+predictions = lstm_model.predict(data_test)
+mse_of_predictions = mse(target_test, predictions)
+mae_of_predictions = mae(target_test, predictions)
+r2_of_predictions = r2(target_test, predictions)
 
 print(f"CustomLSTM Model - MSE: {mse_of_predictions:.4f}, MAE: {mae_of_predictions:.4f}, R2: {r2_of_predictions:.4f}")
 
 plt.figure(figsize=(12, 6))
-plt.plot(target, label='Actual Values', marker='o')
+plt.plot(target_test, label='Actual Values', marker='o')
 plt.plot(predictions, label='Predicted Values Of CustomLSTM', marker='x')
 plt.xlabel('Sample')
 plt.ylabel('House Value')
