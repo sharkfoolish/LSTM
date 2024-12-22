@@ -1,4 +1,5 @@
 import numpy as np
+import copy
 import matplotlib.pyplot as plt
 from sklearn.datasets import fetch_california_housing
 from sklearn.preprocessing import StandardScaler
@@ -42,21 +43,21 @@ def r2(y_true, y_pred):
 
 
 # 資料集分割函數，將資料分成訓練集、驗證集和測試集
-def train_test_split(data, target, train_size, test_size, random_state=None):
+def train_val_test_split(data, target, train_size, val_size, test_size, random_state=None):
 
-    if not np.isclose(train_size + test_size, 1.0):
-        raise ValueError("The sum of train_size and test_size must be 1.0")
+    if not np.isclose(train_size + val_size + test_size, 1.0):
+        raise ValueError("The sum of train_size, val_size, and test_size must be 1.0")
 
     if random_state is not None:
         np.random.seed(random_state)
+    indices = np.random.permutation(len(data))  # 隨機打亂資料索引
+    train_end = int(len(data) * train_size)  # 訓練集結束索引
+    val_end = train_end + int(len(data) * val_size)  # 驗證集結束索引
 
-    indices = np.random.permutation(len(data))
-    train_end = int(len(data) * train_size)
+    data_train, data_val, data_test = data[indices[:train_end]], data[indices[train_end:val_end]], data[indices[val_end:]]
+    target_train, target_val, target_test = target[indices[:train_end]], target[indices[train_end:val_end]], target[indices[val_end:]]
 
-    data_train, data_test = data[indices[:train_end]], data[indices[train_end:]]
-    target_train, target_test = target[indices[:train_end]], target[indices[train_end:]]
-
-    return data_train, data_test, target_train, target_test
+    return data_train, data_val, data_test, target_train, target_val, target_test
 
 
 # Xavier 初始化，用於初始化權重
@@ -66,8 +67,9 @@ def xavier_init(rows, cols):
 
 # 定義自製 LSTM 類別
 class CustomLSTM:
-    def __init__(self, input_dim, hidden_dim, output_dim, learning_rate=0.01, reg_lambda=0.01, decay_factor=0.01):
+    def __init__(self, input_dim, hidden_dim, output_dim, learning_rate=0.01, reg_lambda=0.01, decay_factor=0.01, patience=10):
         self.losses = []  # 訓練過程中的損失
+        self.val_losses = []  # 驗證過程中的損失
         self.input_dim = input_dim  # 輸入維度
         self.hidden_dim = hidden_dim  # 隱藏層維度
         self.output_dim = output_dim  # 輸出維度
@@ -75,6 +77,9 @@ class CustomLSTM:
         self.learning_rate = learning_rate  # 當前學習率
         self.decay_factor = decay_factor  # 學習率衰減參數
         self.reg_lambda = reg_lambda  # 正則化參數
+        self.patience = patience  # 早停的耐心次數
+        self.best_val_loss = float('inf')  # 最佳驗證損失
+        self.patience_counter = 0  # 早停計數器
         self.initialize_weights()  # 初始化權重
         self.initialize_biases()  # 初始化偏差
 
@@ -147,7 +152,7 @@ class CustomLSTM:
         self.biases['output_layer'] -= self.learning_rate * dby
 
     # 訓練模型
-    def train(self, data_train, target_train, epochs):
+    def train(self, data_train, target_train, data_val, target_val, epochs):
         for epoch in range(1, epochs + 1):
             total_loss = 0
             ht_1 = np.zeros((self.hidden_dim, 1))
@@ -168,6 +173,41 @@ class CustomLSTM:
             self.losses.append(avg_loss)
             self.learning_rate_decay(epoch)
             print(f"Epoch {epoch}/{epochs}, Loss: {avg_loss:.6f}")
+
+            val_loss = self.evaluate(data_val, target_val)
+            self.val_losses.append(val_loss)
+            print(f"Validation Loss: {val_loss:.6f}")
+
+            # 早停機制
+            if val_loss < self.best_val_loss:
+                self.best_val_loss = val_loss
+                self.best_weights = copy.deepcopy(self.__dict__)
+                self.patience_counter = 0
+            else:
+                self.patience_counter += 1
+                if self.patience_counter >= patience:
+                    print(f"Early stopping at epoch {epoch}")
+                    self.__dict__.update(self.best_weights)
+                    break
+
+    def evaluate(self, X, y):
+        total_loss = 0
+        ht_1 = np.zeros((self.hidden_dim, 1))
+        ct_1 = np.zeros((self.hidden_dim, 1))
+
+        for i in range(len(X)):
+            xt = X[i].reshape(-1, 1)
+            yt = y[i].reshape(-1, 1)
+            h_t, c_t, y_pred, _, _, _, _ = self.forward_pass(xt, ht_1, ct_1)
+
+            loss = mse(y_pred, yt)
+            total_loss += loss
+
+            ht_1 = h_t
+            ct_1 = c_t
+
+        avg_loss = total_loss / len(X)
+        return avg_loss
 
     def predict(self, X):
         ht_1 = np.zeros((self.hidden_dim, 1))
@@ -193,13 +233,20 @@ scaler = StandardScaler()
 data = scaler.fit_transform(data)
 
 # 訓練、驗證、測試資料分割
-data_train, data_test, target_train, target_test = train_test_split(data, target, train_size=0.6, test_size=0.2, random_state=1000)
+data_train, data_val, data_test, target_train, target_val, target_test = train_val_test_split(data, target, train_size=0.6, val_size=0.2, test_size=0.2, random_state=1000)
 
 # 訓練 LSTM 模型
 lstm_model = CustomLSTM(input_dim=data_train.shape[1], hidden_dim=50, output_dim=1)
-lstm_model.train(data_train, target_train, epochs=5000)
+lstm_model.train(data_train, target_train, data_val, target_val, epochs=1000)
 predictions = lstm_model.predict(data_test)
 print(f"CustomLSTM Model - MSE: {mse(target_test, predictions):.4f}, MAE: {mae(target_test, predictions):.4f}, R2: {r2(target_test, predictions):.4f}")
+
+# 訓練和驗證損失圖表
+plt.plot(lstm_model.losses, label='Training Loss')
+plt.plot(lstm_model.val_losses, label='Validation Loss')
+plt.xlabel('Epochs')
+plt.ylabel('Loss')
+plt.legend()
 
 # 比對實際值和預測值
 plt.figure(figsize=(12, 6))
