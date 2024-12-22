@@ -31,15 +31,21 @@ class CustomLSTM:
         self.Wc = np.random.randn(hidden_dim, input_dim + hidden_dim) * np.sqrt(2.0 / (input_dim + hidden_dim))
         self.Wy = np.random.randn(output_dim, hidden_dim) * np.sqrt(2.0 / hidden_dim)
 
+        self.bf = np.zeros((hidden_dim, 1))
+        self.bi = np.zeros((hidden_dim, 1))
+        self.bo = np.zeros((hidden_dim, 1))
+        self.bc = np.zeros((hidden_dim, 1))
+        self.by = np.zeros((output_dim, 1))
+
     def forward_pass(self, xt, ht_1, ct_1):
         concat = np.vstack((ht_1, xt))
-        f_t = sigmoid(np.dot(self.Wf, concat))
-        i_t = sigmoid(np.dot(self.Wi, concat))
-        cp_t = tanh(np.dot(self.Wc, concat))
-        o_t = sigmoid(np.dot(self.Wo, concat))
+        f_t = sigmoid(np.dot(self.Wf, concat) + self.bf)
+        i_t = sigmoid(np.dot(self.Wi, concat) + self.bi)
+        cp_t = tanh(np.dot(self.Wc, concat) + self.bc)
+        o_t = sigmoid(np.dot(self.Wo, concat) + self.bo)
         c_t = f_t * ct_1 + i_t * cp_t
         h_t = o_t * tanh(c_t)
-        y_pred = np.dot(self.Wy, h_t)
+        y_pred = np.dot(self.Wy, h_t) + self.by
         return h_t, c_t, y_pred, f_t, i_t, cp_t, o_t
 
     def backward_pass(self, xt, ht_1, ct_1, h_t, c_t, y_pred, yt, f_t, i_t, cp_t, o_t):
@@ -49,11 +55,11 @@ class CustomLSTM:
 
         dh_t = np.dot(self.Wy.T, dy)
 
-        do_t = dh_t * tanh(c_t) * sigmoid_derivative(np.dot(self.Wo, np.vstack((ht_1, xt))))
+        do_t = dh_t * tanh(c_t) * sigmoid_derivative(np.dot(self.Wo, np.vstack((ht_1, xt))) + self.bo)
         dc_t = dh_t * o_t * tanh_derivative(tanh(c_t))
-        df_t = dc_t * ct_1 * sigmoid_derivative(np.dot(self.Wf, np.vstack((ht_1, xt))))
-        di_t = dc_t * cp_t * sigmoid_derivative(np.dot(self.Wi, np.vstack((ht_1, xt))))
-        dcp_t = dc_t * i_t * tanh_derivative(np.dot(self.Wc, np.vstack((ht_1, xt))))
+        df_t = dc_t * ct_1 * sigmoid_derivative(np.dot(self.Wf, np.vstack((ht_1, xt))) + self.bf)
+        di_t = dc_t * cp_t * sigmoid_derivative(np.dot(self.Wi, np.vstack((ht_1, xt))) + self.bi)
+        dcp_t = dc_t * i_t * tanh_derivative(np.dot(self.Wc, np.vstack((ht_1, xt))) + self.bc)
 
         dWf = np.dot(df_t, np.vstack((ht_1, xt)).T)
         dWi = np.dot(di_t, np.vstack((ht_1, xt)).T)
@@ -69,6 +75,11 @@ class CustomLSTM:
         self.Wo -= self.learning_rate * dWo
         self.Wc -= self.learning_rate * dWc
         self.Wy -= self.learning_rate * dWy
+        self.bf -= self.learning_rate * dbf
+        self.bi -= self.learning_rate * dbi
+        self.bo -= self.learning_rate * dbo
+        self.bc -= self.learning_rate * dbc
+        self.by -= self.learning_rate * dby
 
     def train(self, X, y, epochs):
         for epoch in range(1, epochs + 1):
@@ -100,7 +111,6 @@ class CustomLSTM:
             ct_1 = c_t
 
         return np.array(predictions).flatten()
-
 
 california_housing_data_set = fetch_california_housing()
 data = california_housing_data_set.data[:1000]
