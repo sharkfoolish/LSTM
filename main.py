@@ -147,6 +147,7 @@ class CustomLSTM:
         self.learning_rate = self.init_learning_rate / (1 + self.decay_factor * epoch)
 
     def forward_pass(self, xt, ht_1, ct_1):
+        xt = xt.reshape(-1, 1)
         concat = np.vstack((ht_1, xt))  # 拼接前一時刻的隱藏狀態和當前輸入
         f_t = sigmoid(np.dot(self.weights['forget_gate'], concat) + self.biases['forget_gate'])  # 忘記門
         i_t = sigmoid(np.dot(self.weights['input_gate'], concat) + self.biases['input_gate'])  # 輸入門
