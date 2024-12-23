@@ -32,4 +32,4 @@ jobs:
       # 執行測試
       - name: Run LSTM test
         run: |
-          python test_lstm.py
+          python test_main.py
